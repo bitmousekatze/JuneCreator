@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROMPTED — JUNE CREATOR CONTEST</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --phosphor:#3dff7c;
+    --phosphor-dim:#1c8a45;
+    --phosphor-faint:#0d3d20;
+    --amber:#ffc24b;
+    --bg:#020803;
+    --alert:#ff4d4d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--phosphor);
+    font-family:'VT323','Courier New',monospace;
+    font-size:clamp(16px,2.2vw,22px);
+    overflow-x:hidden;
+    text-shadow:0 0 6px rgba(61,255,124,.55);
+  }
+
+  /* ===== CRT effects ===== */
+  .crt{
+    position:relative;
+    min-height:100vh;
+    padding:4vh 5vw 8vh;
+    max-width:1100px;
+    margin:0 auto;
+  }
+  .crt::before{ /* scanlines */
+    content:"";
+    position:fixed;inset:0;
+    background:repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,.28) 3px
+    );
+    pointer-events:none;
+    z-index:10;
+  }
+  .crt::after{ /* vignette + screen curve glow */
+    content:"";
+    position:fixed;inset:0;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.75) 100%);
+    pointer-events:none;
+    z-index:11;
+  }
+  .flicker{
+    position:fixed;inset:0;
+    background:rgba(61,255,124,.025);
+    pointer-events:none;z-index:9;
+    animation:flick 4s infinite steps(1);
+  }
+  @keyframes flick{
+    0%,93%,100%{opacity:0;}
+    94%{opacity:1;}
+    95%{opacity:0;}
+    96.5%{opacity:.7;}
+    97%{opacity:0;}
+  }
+
+  /* ===== Type & layout ===== */
+  .line{white-space:pre-wrap;min-height:1.3em;line-height:1.3;}
+  .dim{color:var(--phosphor-dim);text-shadow:0 0 4px rgba(28,138,69,.5);}
+  .amber{color:var(--amber);text-shadow:0 0 8px rgba(255,194,75,.6);}
+  .alert{color:var(--alert);text-shadow:0 0 8px rgba(255,77,77,.6);}
+  .big{
+    font-size:clamp(28px,6vw,64px);
+    letter-spacing:.08em;
+    margin:.2em 0;
+  }
+  .rule{
+    border:none;border-top:1px solid var(--phosphor-faint);
+    margin:1.2em 0;
+  }
+  .cursor::after{
+    content:"█";
+    animation:blink 1s steps(1) infinite;
+  }
+  @keyframes blink{50%{opacity:0;}}
+
+  .status-active{
+    display:inline-block;
+    padding:0 .4em;
+    border:1px solid var(--phosphor);
+    animation:pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{box-shadow:0 0 4px rgba(61,255,124,.4);}
+    50%{box-shadow:0 0 18px rgba(61,255,124,.9);}
+  }
+
+  /* prize table */
+  .prizes{margin:.6em 0 0;}
+  .prize-row{display:flex;justify-content:space-between;max-width:480px;}
+  .prize-row .dots{
+    flex:1;overflow:hidden;white-space:nowrap;
+    color:var(--phosphor-faint);margin:0 .5em;
+  }
+
+  /* dispatch list */
+  #dispatch{margin-top:.4em;}
+  .contact{
+    display:grid;
+    grid-template-columns:2.2em 1fr auto;
+    gap:.8em;
+    align-items:baseline;
+    opacity:0;
+    animation:appear .15s forwards;
+  }
+  @keyframes appear{to{opacity:1;}}
+  .contact .st-calling{color:var(--amber);animation:blink 0.8s steps(1) infinite;}
+  .contact .st-sent{color:var(--phosphor);}
+  .hidden{display:none;}
+
+  /* call to action */
+  .cta{
+    display:inline-block;
+    margin-top:.4em;
+    padding:.25em .8em;
+    color:var(--bg);
+    background:var(--phosphor);
+    text-decoration:none;
+    text-shadow:none;
+    box-shadow:0 0 14px rgba(61,255,124,.7);
+    animation:pulse 1.6s ease-in-out infinite;
+  }
+  .cta:hover,.cta:focus-visible{
+    background:var(--amber);
+    box-shadow:0 0 18px rgba(255,194,75,.9);
+    outline:2px solid var(--amber);
+    outline-offset:3px;
+  }
+
+  /* mute toggle */
+  #mute{
+    position:fixed;
+    top:12px;right:14px;
+    z-index:20;
+    background:transparent;
+    color:var(--phosphor-dim);
+    border:1px solid var(--phosphor-faint);
+    font-family:inherit;
+    font-size:.7em;
+    padding:.2em .6em;
+    cursor:pointer;
+    text-shadow:none;
+  }
+  #mute:hover,#mute:focus-visible{
+    color:var(--phosphor);
+    border-color:var(--phosphor);
+    outline:none;
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    .flicker,.status-active,.contact .st-calling,.cursor::after,.cta{animation:none;}
+    .contact{opacity:1;animation:none;}
+  }
+</style>
+</head>
+<body>
+<div class="flicker"></div>
+<div class="crt">
+  <div id="screen"></div>
+  <div id="bottom-cursor" class="line cursor hidden"></div>
+</div>
+
+<script>
+/* ================================================================
+   EDIT YOUR ROSTER HERE — replace with your real creator usernames
+   ================================================================ */
+const CONTACTS = [
+  "@aadil", "@abhi_15", "@abhidev", "@actmathsprint", "@adejoke",
+  "@adex_berry", "@akinkunm", "@akintoyeisaac5", "@akshdeeps_001", "@alex_s",
+  "@alfred", "@alice", "@aminceo", "@amira_zainab", "@angolabrown26",
+  "@anna23", "@anna25", "@aporiabuilds", "@arinzaay", "@aronprins",
+  "@arpitmandal", "@asym_alwali", "@atrekkingstar", "@azouzidesign", "@bennybarber",
+  "@blessing", "@bolupik", "@braindev", "@brandonzzzs", "@cannamuffinman",
+  "@carteramandel", "@charleeai", "@chatgpt", "@chaudharyaims", "@chickenlittle34",
+  "@chinaza", "@chlo", "@chloe", "@christain_zedd", "@christephly07",
+  "@chrstello", "@claude", "@codegirl", "@col_asy", "@composedgee",
+  "@cspinner82", "@cybernova", "@cyclops", "@cynicangel", "@daredevil",
+  "@david", "@debojyoti452", "@deeprajo1", "@devmouse", "@devwolf",
+  "@dianat73", "@didi", "@dnade", "@doggohartgallery", "@droid",
+  "@emythedev", "@erick", "@ethankross76", "@extacy", "@ezech",
+  "@firefox", "@flash", "@flybylaw", "@gdemian2099", "@gecuka",
+  "@gemini", "@georgew", "@ghoststartups", "@godofprompt", "@gordlord",
+  "@gracetech", "@grok", "@habeebsl", "@hartgallery", "@hawks01210",
+  "@herz", "@herz_2", "@herzcomedy", "@httpken", "@hybridcore7",
+  "@iamyashgawande", "@ibrahimdal05", "@idknows", "@imcaffiene", "@imfqcts",
+  "@is_daouda", "@israel_enua", "@jackh27", "@jackle", "@jacksparrow",
+  "@jacob", "@jameschris", "@jamieherzlich280", "@janecodes", "@jelil",
+  "@jeremy", "@jetro4u", "@jjakhund", "@john_v64", "@johnsmith",
+  "@jon_hill", "@joncphillips", "@jordanherzlich", "@josh", "@josh1",
+  "@joyston", "@justanewbie", "@justfrank", "@juvo", "@kapilansh_twt",
+  "@kataszn", "@kay", "@kennethics", "@khadija", "@khushanshdev",
+  "@kidskelly", "@kingintuition", "@ktanker", "@ktb", "@l_v_l_x",
+  "@ladypraise", "@lander", "@latieng", "@latincasp3r", "@laurmonk",
+  "@leonlin", "@lev", "@lilamar10", "@littlespidey", "@loganparma",
+  "@lonerogue8", "@ltoman", "@ltoman123", "@luckyparrot0809", "@lumioforge",
+  "@lyde", "@mamoshi", "@mandela", "@mathemba", "@matt",
+  "@mautheng", "@maxiagent", "@mcqueen", "@medusai", "@michaelaraba",
+  "@mike", "@minddefinitive", "@minerxx", "@mitchharris", "@mobyloli",
+  "@molahnelson", "@mollie", "@musty", "@muzan_fxx", "@myatsuboi",
+  "@navaneeth", "@naveen", "@nayanunfiltered", "@naza", "@nostoryboss",
+  "@nuel", "@objuno", "@obodi", "@omabuilds", "@outsource",
+  "@ovuqehadoj93", "@patotomastoledo000", "@peter", "@petersturge", "@petitestella",
+  "@phisces", "@primegirl", "@princejake", "@probiex", "@quack_lilypad",
+  "@qwerty", "@rachel_clinton", "@rajutpal", "@ramit", "@rapajicmarko011",
+  "@regina_stones", "@respawnrider31", "@rickrolled", "@roan", "@romeo",
+  "@ryalf12", "@sal", "@samcodes", "@santaclaude", "@schepps66",
+  "@seoreport", "@shibsen", "@shiroku_official", "@shreey", "@skcryptoverse",
+  "@sonofpeace0001", "@sophie", "@sovari", "@spiderboyis", "@stephinnit",
+  "@sum", "@taha", "@talha", "@tcmv", "@temir",
+  "@theaigirl", "@thebuilderx", "@thelastofinusa", "@theprompted", "@tigadansae512",
+  "@toni", "@uche", "@ugxships", "@ulegend", "@user_002152b0",
+  "@user_00d84585", "@user_01bea53b", "@user_01cc4e6a", "@user_041b9e99", "@user_075a0f97",
+  "@user_08a18433", "@user_0a789a7c", "@user_0c0735e7", "@user_0e740678", "@user_0fb54d8c",
+  "@user_1803045a", "@user_1e4c9c36", "@user_2263926f", "@user_22c5c6ed", "@user_2a0ae7d2",
+  "@user_2d15416b", "@user_2fbc96ba", "@user_34d84535", "@user_394a8db1", "@user_3eda4359",
+  "@user_4324ea44", "@user_4db93d80", "@user_575b1b8e", "@user_5bcc1a50", "@user_5fe401e0",
+  "@user_6353a861", "@user_661640c5", "@user_66341956", "@user_6729e938", "@user_6ac9b723",
+  "@user_6c05ab9a", "@user_6d378847", "@user_7221ca9e", "@user_72329e99", "@user_72fa7b02",
+  "@user_8a094020", "@user_8cb36ab4", "@user_8fc5c905", "@user_93c3677e", "@user_95a4ea85",
+  "@user_9689a9c1", "@user_97f50d3a", "@user_9ce7df19", "@user_9cf17b19", "@user_9eaeb817",
+  "@user_a19c0bfe", "@user_a29ab3cc", "@user_a57aa3fd", "@user_a98b3357", "@user_abdul",
+  "@user_ac0953a1", "@user_b8f45b6b", "@user_bcb07b44", "@user_be7a111d", "@user_c0e14133",
+  "@user_c48bdaa0", "@user_c701d365", "@user_cb06f2dc", "@user_d8d37e56", "@user_daf6fead",
+  "@user_dcfd3c84", "@user_dd1e72b3", "@user_dd4efab2", "@user_de1a3a60", "@user_e14d1a9a",
+  "@user_e24a6990", "@user_e3f14694", "@user_e81b1c02", "@user_ec6a47c5", "@user_f3f29d03",
+  "@user_f7fb1bd1", "@user_f9e769ebw", "@user_fd4ed2bc", "@user_febe4df5", "@usersexcsteph",
+  "@ushed_hood", "@vicdengineeer", "@vik", "@virira7307", "@vision",
+  "@vnua", "@wave", "@zeebee", "@zoe_100105"
+];
+
+/* Contest settings — edit these */
+const DEADLINE  = new Date('2026-06-30T23:59:59').getTime();
+const ENTRY_URL = 'https://prmpted.com';
+
+/* Background music — file path/URL to an audio file, '' for no music.
+   MUSIC_VOLUME is 0–100. MUSIC_START is the offset in seconds where playback begins.
+   MUSIC_FADE is how many seconds the music takes to fade in to full volume. */
+const MUSIC = 'BackgroundMusic.mp3';
+const MUSIC_VOLUME = 12;
+const MUSIC_START = 10;
+const MUSIC_FADE = 4;
+
+/* ---------------- audio engine ---------------- */
+let audioCtx = null;
+let muted = false;
+
+function initAudio(){
+  if(audioCtx){ audioCtx.resume(); return; }
+  try{
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  catch(e){ audioCtx = null; }
+}
+
+/* iOS suspends the audio context when other media (like the background
+   music) starts — re-resume it before every sound */
+function ensureAudio(){
+  if(audioCtx && audioCtx.state !== 'running') audioCtx.resume();
+  return audioCtx && !muted;
+}
+
+/* short filtered noise burst = mechanical key click */
+function keyClick(){
+  if(!ensureAudio()) return;
+  const t = audioCtx.currentTime;
+  const len = 0.015;
+  const buf = audioCtx.createBuffer(1, audioCtx.sampleRate*len, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for(let i=0;i<data.length;i++) data[i] = (Math.random()*2-1) * (1 - i/data.length);
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 2200 + Math.random()*1800; // varied pitch per key
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.07, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t+len);
+  src.connect(filter).connect(gain).connect(audioCtx.destination);
+  src.start(t);
+}
+
+/* really soft sine blip = message sent */
+function beep(){
+  if(!ensureAudio()) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(880, t);
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.035, t+0.01); // very gentle
+  gain.gain.exponentialRampToValueAtTime(0.0001, t+0.12);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(t); osc.stop(t+0.13);
+}
+
+/* mute toggle */
+const muteBtn = document.createElement('button');
+muteBtn.id = 'mute';
+muteBtn.textContent = 'SOUND: ON';
+muteBtn.onclick = e => {
+  e.stopPropagation();
+  muted = !muted;
+  muteBtn.textContent = muted ? 'SOUND: OFF' : 'SOUND: ON';
+  setMusicMuted(muted);
+};
+muteBtn.addEventListener('pointerdown', e => e.stopPropagation());
+document.body.appendChild(muteBtn);
+
+/* ---------------- background music ---------------- */
+let musicEl = null;
+
+function startMusic(){
+  if(!MUSIC) return;
+  /* #t= media fragment starts playback at the offset even before metadata loads */
+  musicEl = new Audio(MUSIC + '#t=' + MUSIC_START);
+  musicEl.volume = 0;
+  musicEl.muted = muted;
+  musicEl.addEventListener('ended', () => { musicEl.currentTime = MUSIC_START; musicEl.play().catch(()=>{}); });
+  /* fade in once playback actually begins */
+  musicEl.addEventListener('playing', () => {
+    const t0 = performance.now();
+    (function fade(){
+      const p = Math.min((performance.now() - t0) / (MUSIC_FADE * 1000), 1);
+      musicEl.volume = (MUSIC_VOLUME / 100) * p;
+      if(p < 1) requestAnimationFrame(fade);
+    })();
+  }, { once: true });
+  musicEl.play().catch(()=>{});
+}
+
+function setMusicMuted(m){
+  if(musicEl) musicEl.muted = m;
+}
+
+/* ---------------- terminal engine ---------------- */
+const screen = document.getElementById('screen');
+const bottomCursor = document.getElementById('bottom-cursor');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function newLine(cls=''){
+  const d = document.createElement('div');
+  d.className = 'line ' + cls;
+  screen.appendChild(d);
+  return d;
+}
+
+async function typeText(el, text, speed=28){
+  if(reduced){ el.innerHTML += text; return; }
+  el.classList.add('cursor');
+  for(const ch of text){
+    el.innerHTML += ch === '<' ? '&lt;' : ch;
+    if(ch !== ' ') keyClick();
+    window.scrollTo(0, document.body.scrollHeight);
+    await sleep(speed + Math.random()*22);
+  }
+  el.classList.remove('cursor');
+}
+
+async function bootLine(text, delay=350){
+  const el = newLine('dim');
+  el.textContent = text;
+  if(!reduced) await sleep(delay);
+}
+
+function pad(n){ return String(n).padStart(2,'0'); }
+
+/* ---------------- the sequence ---------------- */
+async function run(){
+  // boot
+  await bootLine('PROMPTED-NET v9.61 // SECURE UPLINK ESTABLISHED');
+  await bootLine('AUTH ...................... OK');
+  await bootLine('ENCRYPTION ................ AES-4096 / ROTARY');
+  await bootLine('OPERATOR TERMINAL 07 ...... ONLINE');
+  newLine();
+  if(!reduced) await sleep(500);
+
+  // header
+  const eyebrow = newLine('dim');
+  await typeText(eyebrow, 'PROMPTED // CREATOR DISPATCH', 30);
+  const h1 = newLine('big');
+  await typeText(h1, 'JUNE CREATOR CONTEST', 55);
+  if(!reduced) await sleep(300);
+
+  const st = newLine();
+  await typeText(st, 'STATUS: ');
+  const badge = document.createElement('span');
+  badge.className = 'status-active';
+  badge.textContent = ' ACTIVE ';
+  st.appendChild(badge);
+  if(!reduced) await sleep(400);
+
+  const pool = newLine('amber');
+  await typeText(pool, 'TOTAL BOUNTY POOL: $1,000 USD', 35);
+  screen.appendChild(Object.assign(document.createElement('hr'),{className:'rule'}));
+
+  // prizes
+  const prizes = [
+    ['FIRST PLACE','$600'],
+    ['SECOND PLACE','$300'],
+    ['THIRD PLACE','$100'],
+  ];
+  for(const [label, amt] of prizes){
+    const row = document.createElement('div');
+    row.className = 'prize-row line';
+    row.innerHTML = `<span>${label}</span><span class="dots">.....................................................</span><span class="amber">${amt}</span>`;
+    screen.appendChild(row);
+    if(!reduced) await sleep(420);
+  }
+
+  screen.appendChild(Object.assign(document.createElement('hr'),{className:'rule'}));
+  if(!reduced) await sleep(400);
+
+  // dispatch
+  const dHead = newLine();
+  await typeText(dHead, '>> OPEN CONTRACT — NOTIFYING ALL REGISTERED CREATORS', 30);
+  const dSub = newLine('dim');
+  dSub.textContent = `   ${CONTACTS.length} CONTACTS IN ROSTER`;
+  newLine();
+
+  const list = document.createElement('div');
+  list.id = 'dispatch';
+  screen.appendChild(list);
+
+  let delivered = 0;
+  for(let i = 0; i < CONTACTS.length; i++){
+    const row = document.createElement('div');
+    row.className = 'contact line';
+    const stSpan = `<span class="st st-calling">CALLING…</span>`;
+    row.innerHTML = `<span class="dim">${pad(i+1)}</span><span>${CONTACTS[i]}</span>${stSpan}`;
+    list.appendChild(row);
+    window.scrollTo(0, document.body.scrollHeight);
+
+    // resolve to SENT after a beat
+    const resolveAfter = reduced ? 0 : 600 + Math.random()*900;
+    setTimeout(()=>{
+      const s = row.querySelector('.st');
+      s.textContent = '■ MESSAGE SENT';
+      s.className = 'st st-sent';
+      beep();
+      delivered++;
+      if(delivered === CONTACTS.length) finale();
+    }, resolveAfter);
+
+    if(!reduced) await sleep(220 + Math.random()*260);
+  }
+  if(reduced) finale();
+}
+
+let finaleDone = false;
+async function finale(){
+  if(finaleDone) return; finaleDone = true;
+  if(!reduced) await sleep(700);
+  newLine();
+  const f = newLine();
+  await typeText(f, `>> ALL ${CONTACTS.length} CONTACTS NOTIFIED. CONTRACT IS LIVE.`, 30);
+  if(!reduced) await sleep(600);
+  const d = newLine('alert');
+  await typeText(d, '>> PRMPTED.COM IS NOW DECONSECRATED.', 45);
+  if(!reduced) await sleep(500);
+  const g = newLine('amber');
+  await typeText(g, '>> GOOD LUCK, CREATORS.', 45);
+
+  // live countdown to deadline
+  if(!reduced) await sleep(500);
+  newLine();
+  const cd = newLine();
+  function tick(){
+    const diff = DEADLINE - Date.now();
+    if(diff <= 0){
+      cd.innerHTML = '>> CONTRACT EXPIRES IN: <span class="alert">CLOSED</span>';
+      return;
+    }
+    const s = Math.floor(diff/1000);
+    const dd = Math.floor(s/86400), hh = pad(Math.floor(s%86400/3600)),
+          mm = pad(Math.floor(s%3600/60)), ss = pad(s%60);
+    cd.innerHTML = `>> CONTRACT EXPIRES IN: <span class="amber">${dd}D ${hh}H ${mm}M ${ss}S</span>`;
+    setTimeout(tick, 1000);
+  }
+  tick();
+
+  // call to action
+  if(!reduced) await sleep(600);
+  const ctaWrap = newLine();
+  const cta = document.createElement('a');
+  cta.href = ENTRY_URL;
+  cta.className = 'cta';
+  cta.textContent = '[ TRANSMIT ENTRY ]';
+  ctaWrap.appendChild(cta);
+  bottomCursor.classList.remove('hidden');
+  window.scrollTo(0, document.body.scrollHeight);
+}
+
+/* boot gate — browsers only allow audio after a user gesture */
+const gate = newLine('cursor');
+gate.textContent = '>> PRESS ANY KEY OR TAP TO INITIALIZE UPLINK ';
+
+let started = false;
+function start(){
+  if(started) return; started = true;
+  initAudio();
+  keyClick(); // fire one click inside the tap gesture to fully unlock audio
+  setTimeout(startMusic, 800); // let the terminal audio settle in first
+  gate.remove();
+  run();
+}
+window.addEventListener('keydown', start, { once:false });
+window.addEventListener('pointerdown', start, { once:false });
+</script>
+</body>
+</html>
