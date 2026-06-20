@@ -159,6 +159,26 @@
     outline:none;
   }
 
+  /* page switch */
+  #switch{
+    position:fixed;
+    top:12px;left:14px;
+    z-index:20;
+    background:transparent;
+    color:var(--phosphor-dim);
+    border:1px solid var(--phosphor-faint);
+    font-family:inherit;
+    font-size:.7em;
+    padding:.2em .6em;
+    text-decoration:none;
+    text-shadow:none;
+  }
+  #switch:hover,#switch:focus-visible{
+    color:var(--phosphor);
+    border-color:var(--phosphor);
+    outline:none;
+  }
+
   /* volume sliders */
   #vol-panel{
     position:fixed;
@@ -197,6 +217,7 @@
 </head>
 <body>
 <div class="flicker"></div>
+<a id="switch" href="matrix.html">&gt;&gt; ENTER THE MATRIX</a>
 <div class="crt">
   <div id="screen"></div>
   <div id="bottom-cursor" class="line cursor hidden"></div>
@@ -220,7 +241,10 @@ const CONTACTS = [
   "@user_9689a9c1", "@asym_alwali", "@ktb", "@akshdeeps_001",
   "@thebuilderx", "@joyston", "@mollie", "@sovari", "@shiroku_official",
   "@kennethics", "@cannamuffinman", "@vicdengineeer", "@flybylaw",
-  "@adex_berry", "@adejoke", "@imcaffiene", "@ulegend", "@hartgallerydoggo"
+  "@adex_berry", "@adejoke", "@imcaffiene", "@ulegend", "@hartgallerydoggo",
+  "@sasam", "@fayfay", "@gamingtronium", "@cryptofreak", "@ugxships",
+  "@anitanft", "@peperon", "@m18ad", "@chaoho554", "@abdul",
+  "@netskrip", "@josephjbassey", "@zicsmartt", "@vnua"
 ];
 
 /* Contest settings — edit these */
