@@ -207,8 +207,9 @@ const CONTACTS = [
 
 const DEADLINE  = new Date('2026-06-30T23:59:59').getTime();
 const ENTRY_URL = 'https://www.prmpted.com/community/june-1000-creator-of-the-month';
-const MUSIC = 'BackgroundMusic.mp3';
+const MUSIC = 'BackgroundmusicMatrix.mp3';
 const MUSIC_VOLUME = 0.12;
+const MUSIC_START = 23;   // seconds — where playback (and each loop) begins
 
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -258,10 +259,12 @@ sndBtn.onclick = e => {
 };
 function startMusic(){
   if(!MUSIC) return;
-  musicEl = new Audio(MUSIC);
-  musicEl.loop = true;
+  /* #t= starts playback at the offset even before metadata loads */
+  musicEl = new Audio(MUSIC + '#t=' + MUSIC_START);
   musicEl.volume = MUSIC_VOLUME;
   musicEl.muted = muted;
+  /* loop back to MUSIC_START (not 0) so the intro never replays */
+  musicEl.addEventListener('ended', () => { musicEl.currentTime = MUSIC_START; musicEl.play().catch(()=>{}); });
   musicEl.play().catch(()=>{});
 }
 
