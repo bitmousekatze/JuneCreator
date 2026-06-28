@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PROMPTED — THE 24 TRIBUTES // June Build Contest</title>
+<style>
+  :root{
+    --gold:#f6c66b; --ember:#ff6a1a; --ash:#0a0a0c; --gold-soft:#caa24a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:radial-gradient(120% 90% at 50% 0%, #1b1207 0%, #0a0a0c 45%, #050506 100%);
+    color:#f4efe6; font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif; overflow:hidden;
+  }
+  #stage{
+    position:relative; width:100vw; height:56.25vw;
+    max-height:100vh; max-width:177.78vh; margin:auto;
+    top:50%; transform:translateY(-50%); overflow:hidden;
+  }
+  canvas#embers{position:absolute; inset:0; width:100%; height:100%; z-index:1}
+  .layer{position:absolute; inset:0; z-index:2; display:flex; align-items:center; justify-content:center}
+
+  /* ---------- Play gate ---------- */
+  #gate{
+    position:absolute; inset:0; z-index:8; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:3vh; cursor:pointer;
+    background:radial-gradient(circle at 50% 40%, rgba(255,106,26,.08), rgba(5,5,6,.92));
+  }
+  #gate .g-kicker{font-size:1.4vw; letter-spacing:.6em; text-transform:uppercase; color:var(--gold-soft)}
+  #gate .g-title{
+    font-size:6vw; font-weight:900; color:var(--gold); letter-spacing:.04em; text-align:center; line-height:.95;
+    text-shadow:0 0 28px rgba(246,198,107,.35), 0 0 70px rgba(255,106,26,.25);
+  }
+  #gate .g-play{
+    margin-top:1vh; font-size:1.6vw; letter-spacing:.25em; text-transform:uppercase;
+    color:var(--ash); background:var(--gold); padding:1.4vh 3vw; border-radius:10px;
+    box-shadow:0 0 30px rgba(246,198,107,.5); animation:beat 1.8s ease-in-out infinite;
+  }
+  @keyframes beat{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+
+  /* ---------- Intro ---------- */
+  #intro{flex-direction:column; gap:2.2vh; text-align:center}
+  #intro .kicker{font-size:1.6vw; letter-spacing:.7em; text-transform:uppercase; color:var(--gold-soft); opacity:0; transform:translateY(14px)}
+  #intro .title{
+    font-size:7vw; font-weight:900; letter-spacing:.04em; line-height:.95; color:var(--gold);
+    text-shadow:0 0 28px rgba(246,198,107,.35), 0 0 70px rgba(255,106,26,.25); opacity:0; transform:scale(.92);
+  }
+  #intro .sub{font-size:1.5vw; letter-spacing:.45em; text-transform:uppercase; color:#cfc4b0; opacity:0}
+  .anim-kicker{animation:rise .9s ease forwards .2s}
+  .anim-title{animation:pop 1.1s cubic-bezier(.2,.8,.2,1) forwards .5s}
+  .anim-sub{animation:fade 1s ease forwards 1.3s}
+
+  /* ---------- Tribute card ---------- */
+  #card-layer{perspective:1200px}
+  .card{
+    position:relative; width:34vw; max-width:560px; aspect-ratio:16/10;
+    background:linear-gradient(160deg,#1d1a14 0%,#100f0c 100%); border:1px solid rgba(246,198,107,.35);
+    border-radius:16px; padding:3.2vh 3vw; display:grid; grid-template-columns:auto 1fr; gap:2.4vw; align-items:center;
+    box-shadow:0 0 0 1px rgba(0,0,0,.6), 0 30px 80px rgba(0,0,0,.7), inset 0 0 60px rgba(255,106,26,.06); opacity:0;
+  }
+  .card.show{animation:cardIn 2.6s cubic-bezier(.16,.84,.24,1) forwards}
+  .card .frame{
+    width:11vw; max-width:170px; aspect-ratio:1; border-radius:14px; overflow:hidden;
+    border:2px solid var(--gold); flex:none; position:relative; box-shadow:0 0 30px rgba(246,198,107,.3);
+    background:linear-gradient(135deg,#2a2118,#0c0b09);
+  }
+  .card .frame img{width:100%; height:100%; object-fit:cover; display:block}
+  .card .frame .initials{width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    font-size:3.4vw; font-weight:900; color:var(--gold); background:radial-gradient(circle at 40% 30%, #3a2c16, #120d07)}
+  .card .portrait-col{display:flex; flex-direction:column; align-items:center; gap:1.1vh; min-width:0}
+  .card .district{background:var(--ash); border:1px solid var(--gold); color:var(--gold); font-size:.95vw;
+    letter-spacing:.2em; padding:.45vh 1vw; border-radius:8px; text-transform:uppercase; white-space:nowrap}
+  .card .meta{min-width:0}
+  .card .meta .rank{font-size:1.1vw; letter-spacing:.35em; color:var(--ember); text-transform:uppercase}
+  .card .meta .name{font-size:3.1vw; font-weight:900; line-height:1.02; margin:.4vh 0; color:#fff;
+    overflow-wrap:anywhere; word-break:break-word}
+  .card .meta .handle{font-size:1.3vw; color:var(--gold-soft)}
+  .card .meta .pts{margin-top:1.4vh; font-size:1.25vw; color:#e9dcc0; letter-spacing:.06em}
+  .card .meta .pts b{color:var(--gold); font-size:1.7vw}
+
+  /* ---------- Final grid ---------- */
+  #grid-layer{flex-direction:column; gap:2.4vh; opacity:0}
+  #grid-layer.show{animation:fade 1.1s ease forwards}
+  #grid-layer .gtitle{font-size:3.4vw; font-weight:900; color:var(--gold); letter-spacing:.05em; text-align:center;
+    text-shadow:0 0 30px rgba(255,106,26,.3)}
+  .grid{display:grid; grid-template-columns:repeat(8,1fr); gap:.9vw; width:84vw; max-width:1500px}
+  .cell{position:relative; aspect-ratio:1; border-radius:10px; overflow:hidden; border:1px solid rgba(246,198,107,.3);
+    background:#15110a; opacity:0; transform:scale(.6)}
+  .cell.in{animation:cellPop .5s cubic-bezier(.2,.8,.2,1) forwards}
+  .cell img{width:100%; height:100%; object-fit:cover}
+  .cell .ini{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:900;color:var(--gold);
+    font-size:1.6vw; background:radial-gradient(circle at 40% 30%, #3a2c16, #120d07)}
+  .cell .nm{position:absolute;bottom:0;left:0;right:0;font-size:.62vw;text-align:center;
+    background:linear-gradient(transparent,rgba(0,0,0,.85));color:#fff;padding:.8vh .2vw .4vh;letter-spacing:.04em}
+  #grid-layer .odds{font-size:1.5vw; letter-spacing:.4em; color:#cfc4b0; text-transform:uppercase}
+
+  /* ---------- Nav + controls ---------- */
+  #nav{position:absolute; top:12px; left:14px; z-index:9; display:flex; gap:.6vh}
+  #nav a{background:rgba(20,16,9,.8); color:var(--gold); border:1px solid var(--gold-soft);
+    font-family:inherit; font-size:1.5vh; letter-spacing:.1em; text-transform:uppercase; padding:.7vh 1.2vh;
+    border-radius:8px; text-decoration:none; backdrop-filter:blur(4px)}
+  #nav a:hover{background:rgba(246,198,107,.15)}
+  #ui{position:absolute; z-index:9; right:2vh; bottom:2vh; display:flex; gap:1vh}
+  #ui button{background:rgba(20,16,9,.8); color:var(--gold); border:1px solid var(--gold-soft);
+    font:inherit; font-size:1.4vh; letter-spacing:.1em; text-transform:uppercase; padding:1vh 1.6vh; border-radius:8px;
+    cursor:pointer; backdrop-filter:blur(4px)}
+  #ui button:hover{background:rgba(246,198,107,.15)}
+  #speed-wrap{display:flex; align-items:center; gap:1vh; background:rgba(20,16,9,.8);
+    color:var(--gold-soft); border:1px solid var(--gold-soft); border-radius:8px; padding:1vh 1.4vh;
+    font-size:1.4vh; letter-spacing:.1em; backdrop-filter:blur(4px)}
+  #speed-wrap input[type=range]{width:12vh; accent-color:var(--gold); cursor:pointer}
+  #speed-val{color:var(--gold); min-width:3.4ch; text-align:right}
+  .hidden{display:none !important}
+
+  @keyframes rise{to{opacity:1; transform:translateY(0)}}
+  @keyframes pop{0%{opacity:0;transform:scale(.92)}60%{opacity:1;transform:scale(1.04)}100%{opacity:1;transform:scale(1)}}
+  @keyframes fade{to{opacity:1}}
+  @keyframes cardIn{
+    0%{opacity:0; transform:translateX(60px) rotateY(-18deg) scale(.95)}
+    14%{opacity:1; transform:translateX(0) rotateY(0) scale(1)}
+    86%{opacity:1; transform:translateX(0) rotateY(0) scale(1)}
+    100%{opacity:0; transform:translateX(-60px) rotateY(18deg) scale(.95)}
+  }
+  @keyframes cellPop{to{opacity:1; transform:scale(1)}}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="embers"></canvas>
+
+  <nav id="nav">
+    <a href="index.html">▸ Terminal</a>
+    <a href="matrix.html">▸ Construct</a>
+  </nav>
+
+  <div id="gate">
+    <div class="g-kicker">Prompted presents</div>
+    <div class="g-title">THE 24 TRIBUTES</div>
+    <div class="g-play">▶ Play</div>
+  </div>
+
+  <div id="intro" class="layer hidden">
+    <div class="kicker">Prompted presents</div>
+    <div class="title">24 TRIBUTES</div>
+    <div class="sub">June Build Contest · The Roster</div>
+  </div>
+
+  <div id="card-layer" class="layer hidden"></div>
+
+  <div id="grid-layer" class="layer hidden">
+    <div class="gtitle">THE FULL ROSTER</div>
+    <div class="grid" id="grid"></div>
+    <div class="odds">May the odds be ever in your favor</div>
+  </div>
+
+  <div id="ui" class="hidden">
+    <label id="speed-wrap">SPEED
+      <input type="range" id="speed" min="50" max="300" value="100" step="5">
+      <span id="speed-val">1.0×</span>
+    </label>
+    <button id="replay">▷ Replay</button>
+    <button id="skip">Skip to grid</button>
+  </div>
+</div>
+
+<script>
+/* ---- Roster: top 24 by builder points, contest cut ----
+   mouse + herz removed; Netskip/Doggo/m18ad/Chloe added;
+   DaReDeViL + cyclops dropped to hold at 24. ---- */
+const TRIBUTES = [
+  {name:"Vision",        handle:"vision",       pts:8048, avatar:null},
+  {name:"Ayush",         handle:"col_asy",      pts:4190, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/a2b9e351-5955-46a6-90a5-e36184dfe3de/avatar.jpg?t=1777067593566"},
+  {name:"Mollie",        handle:"mollie",       pts:3986, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/d79a97d2-8d4d-4f98-b5b4-43d55de879da/avatar.jpg?t=1777667325948"},
+  {name:"Joshua",        handle:"josh1",        pts:3913, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/666187f6-f7ea-4329-a947-c6a72f421fa2/avatar.jpeg?t=1772709165239"},
+  {name:"Arqon",         handle:"thebuilderx",  pts:3842, avatar:null},
+  {name:"MindDefinitive",handle:"minddefinitive",pts:3202,avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/76e5a888-de45-4ab5-be3f-3c2bdb11ee4a/avatar.png?t=1779281863053"},
+  {name:"Arinzaay",      handle:"arinzaay",     pts:2512, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/9890c16c-6d99-44a7-b12a-33e506f88e82/avatar.jpg?t=1770936894226"},
+  {name:"The devquee",   handle:"mcqueen",      pts:2165, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/dee35d7e-f7d4-4c34-b572-d7338f6cfa75/avatar.jpg?t=1773271241927"},
+  {name:"Sulaimon",      handle:"minerxx",      pts:2099, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/cea3b363-dd88-44b5-93e1-4bcff36237f3/avatar.jpg?t=1772664001440"},
+  {name:"Lateef",        handle:"latieng",      pts:2086, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/873860da-0335-48bc-8c05-df7712431f27/avatar.jpeg?t=1772748907241"},
+  {name:"Evan Wadsworth",handle:"ktb",          pts:1864, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/c23ff79e-7595-4573-a188-b0f3cf6b025b/avatar.jpg?t=1779555941392"},
+  {name:"Maxim Build",   handle:"maxiagent",    pts:1762, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/1f272ae0-dd8e-415d-8d2f-722ba0ca8c40/avatar.jpg?t=1773340141181"},
+  {name:"Shreya",        handle:"shreey",       pts:1719, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/0edb1a84-b53a-4c13-bf9a-f895c6bd4d5f/avatar.jpg?t=1773581806079"},
+  {name:"Zaineee",       handle:"amira_zainab", pts:1581, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/e2ecfba1-a68f-4443-9bfa-4d994a28b29c/avatar.png?t=1773399940989"},
+  {name:"viktor",        handle:"vicdengineeer",pts:1508, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/75a55055-55b8-484c-a334-06f4cabb1f6b/avatar.jpeg?t=1772747878300"},
+  {name:"Lydia",         handle:"lyde",         pts:1471, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/9551f059-3516-485e-9f59-c08008fff59d/avatar.jpeg?t=1772747459606"},
+  {name:"Maurice",       handle:"mautheng",     pts:1461, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/a7f6b4b1-63c4-4eff-a27c-be71c634b130/avatar.jpg?t=1773341202572"},
+  {name:"Emily",         handle:"emythedev",    pts:1455, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/2e5cd5da-e5c7-4147-866a-8946e557c006/avatar.jpeg?t=1772710475482"},
+  {name:"Zainab",        handle:"zeebee",       pts:1455, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/e14128cd-39f2-4c39-a583-c5328394d078/avatar.jpeg?t=1772711616753"},
+  {name:"PETER STURGE",  handle:"petersturge",  pts:1420, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/5a083963-e605-4e44-8975-b3ba4d8beacf/avatar.png?t=1772718430121"},
+  {name:"netskrip",      handle:"netskrip",     pts:1175, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/3ccd3793-5c81-4605-809d-eac6ef76cf5f/avatar.png?t=1781603015083"},
+  {name:"Doggo",         handle:"doggohartgallery",pts:780,avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/70810a6c-524a-4834-8f9a-8b567b11a13d/avatar.jpg?t=1778508081236"},
+  {name:"Michael",       handle:"m18ad",        pts:752,  avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/78d8a974-e874-4fe0-bd4a-15c79adc3f52/avatar.webp?t=1781496427725"},
+  {name:"Chloe",         handle:"chlo",         pts:513,  avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/a01ee86a-f064-4142-8638-84fe8a2fc523/avatar.jpg?t=1779045353301"},
+];
+
+/* ---- Music: drop a file you have the rights to next to this page.
+   Plays when the user hits Play. '' disables it. See note in chat re: licensing. ---- */
+const MUSIC = 'HangingTree.mp3';
+const MUSIC_VOLUME = 55;   // 0–100
+const MUSIC_FADE = 3;      // seconds to fade in
+
+const initials = n => n.replace(/[^A-Za-z ]/g,'').trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || '?';
+const portrait = t => t.avatar
+  ? `<img src="${t.avatar}" alt="" onerror="this.outerHTML='<div class=&quot;initials&quot;>${initials(t.name)}</div>'">`
+  : `<div class="initials">${initials(t.name)}</div>`;
+
+/* ---- Ember particle field ---- */
+const cv = document.getElementById('embers'), cx = cv.getContext('2d');
+let W,H,parts=[];
+function resize(){const r=cv.getBoundingClientRect();W=cv.width=r.width;H=cv.height=r.height;}
+new ResizeObserver(resize).observe(cv); resize();
+for(let i=0;i<90;i++) parts.push(spawn(true));
+function spawn(init){return{x:Math.random()*W, y:init?Math.random()*H:H+10,
+  r:Math.random()*2.4+0.6, vy:-(Math.random()*0.8+0.3), vx:(Math.random()-.5)*0.4,
+  a:Math.random()*0.6+0.2, tw:Math.random()*0.04+0.01};}
+function tick(){
+  cx.clearRect(0,0,W,H);
+  for(let p of parts){
+    p.y+=p.vy; p.x+=p.vx; p.a+=Math.sin(Date.now()*p.tw)*0.003;
+    if(p.y<-10){Object.assign(p,spawn(false));}
+    cx.beginPath(); cx.arc(p.x,p.y,p.r,0,7);
+    cx.fillStyle=`rgba(255,${140+Math.random()*60|0},40,${Math.max(0,p.a)})`;
+    cx.shadowColor='rgba(255,120,30,.9)'; cx.shadowBlur=12; cx.fill();
+  }
+  requestAnimationFrame(tick);
+}
+tick();
+
+/* ---- Background music ---- */
+let musicEl = null;
+function startMusic(){
+  if(!MUSIC) return;
+  musicEl = new Audio(MUSIC);
+  musicEl.loop = true;
+  musicEl.volume = 0;
+  musicEl.play().then(()=>{
+    const target = MUSIC_VOLUME/100, t0 = performance.now();
+    (function fade(){
+      const f = Math.min((performance.now()-t0)/(MUSIC_FADE*1000), 1);
+      musicEl.volume = target*f;
+      if(f<1) requestAnimationFrame(fade);
+    })();
+  }).catch(()=>{ /* no file / blocked — animation still runs silently */ });
+}
+
+/* ---- Sequence ---- */
+const gate=document.getElementById('gate');
+const intro=document.getElementById('intro');
+const cardLayer=document.getElementById('card-layer');
+const gridLayer=document.getElementById('grid-layer');
+const gridEl=document.getElementById('grid');
+const ui=document.getElementById('ui');
+const BASE_MS=2600;            // card duration at 1.0× speed
+let speedMult=1;               // driven by the speed slider
+const cardMs=()=>BASE_MS/speedMult;
+let timers=[];
+const clearTimers=()=>{timers.forEach(clearTimeout);timers=[];};
+const wait=(fn,ms)=>timers.push(setTimeout(fn,ms));
+
+function buildGrid(){
+  gridEl.innerHTML = TRIBUTES.map(t=>
+    `<div class="cell"><div class="port">${portrait(t)}</div><div class="nm">${t.name}</div></div>`
+  ).join('');
+  [...gridEl.querySelectorAll('.cell')].forEach(c=>{
+    const p=c.querySelector('.port'); c.insertBefore(p.firstElementChild,p); p.remove();
+    const ini=c.querySelector('.initials'); if(ini) ini.classList.replace('initials','ini');
+  });
+}
+buildGrid();
+
+function showCard(i){
+  if(i>=TRIBUTES.length){ showGrid(); return; }
+  const t=TRIBUTES[i];
+  const c=document.createElement('div');
+  c.className='card';
+  c.innerHTML=`
+    <div class="portrait-col">
+      <div class="district">District ${String(Math.floor(i/2)+1).padStart(2,'0')}</div>
+      <div class="frame">${portrait(t)}</div>
+    </div>
+    <div class="meta">
+      <div class="rank">Tribute ${i+1} of 24</div>
+      <div class="name">${t.name}</div>
+      <div class="handle">@${t.handle}</div>
+      <div class="pts"><b>${t.pts.toLocaleString()}</b> Builder Points</div>
+    </div>`;
+  c.style.animationDuration = cardMs()+'ms';   // keep fly-in synced to slide time
+  cardLayer.innerHTML=''; cardLayer.appendChild(c);
+  requestAnimationFrame(()=>c.classList.add('show'));
+  wait(()=>showCard(i+1), cardMs());
+}
+
+function showGrid(){
+  cardLayer.classList.add('hidden');
+  gridLayer.classList.remove('hidden');
+  requestAnimationFrame(()=>gridLayer.classList.add('show'));
+  [...gridEl.children].forEach((cell,i)=> wait(()=>cell.classList.add('in'), i*90));
+}
+
+function runIntro(){
+  clearTimers();
+  cardLayer.classList.add('hidden'); cardLayer.innerHTML='';
+  gridLayer.classList.add('hidden'); gridLayer.classList.remove('show');
+  [...gridEl.children].forEach(c=>c.classList.remove('in'));
+  intro.classList.remove('hidden');
+  intro.querySelector('.kicker').className='kicker anim-kicker';
+  intro.querySelector('.title').className='title anim-title';
+  intro.querySelector('.sub').className='sub anim-sub';
+  wait(()=>{ intro.classList.add('hidden'); cardLayer.classList.remove('hidden'); showCard(0); }, 3200);
+}
+
+/* play gate — first gesture unlocks audio + starts the show */
+gate.addEventListener('click', ()=>{
+  gate.classList.add('hidden');
+  ui.classList.remove('hidden');
+  startMusic();
+  runIntro();
+});
+
+const speedEl=document.getElementById('speed'), speedVal=document.getElementById('speed-val');
+speedEl.addEventListener('input', ()=>{
+  speedMult = speedEl.value/100;
+  speedVal.textContent = speedMult.toFixed(1)+'×';
+});
+
+document.getElementById('replay').onclick=()=>{
+  if(musicEl){ try{ musicEl.currentTime=0; musicEl.play(); }catch(e){} }
+  runIntro();
+};
+document.getElementById('skip').onclick=()=>{clearTimers(); intro.classList.add('hidden'); cardLayer.classList.add('hidden'); showGrid();};
+</script>
+</body>
+</html>
