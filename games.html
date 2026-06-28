@@ -94,6 +94,15 @@
     font-size:1.6vw; background:radial-gradient(circle at 40% 30%, #3a2c16, #120d07)}
   .cell .nm{position:absolute;bottom:0;left:0;right:0;font-size:.62vw;text-align:center;
     background:linear-gradient(transparent,rgba(0,0,0,.85));color:#fff;padding:.8vh .2vw .4vh;letter-spacing:.04em}
+  .cell-link{display:block;width:100%;height:100%;cursor:pointer}
+  .cell .tip{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:.2vh;background:rgba(8,6,4,.92);text-align:center;padding:.4vh;
+    opacity:0;pointer-events:none;transition:opacity .15s;backdrop-filter:blur(2px);z-index:4}
+  .cell:hover .tip{opacity:1}
+  .cell .tip .tipbig{font-size:.74vw;font-weight:700;color:var(--gold);line-height:1.3}
+  .cell .tip .tipsub{font-size:.58vw;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-soft);margin-top:.3vh}
+  .card .frame a{display:block;width:100%;height:100%}
+  .card .meta .contest{margin-top:1vh;font-size:1.05vw;color:var(--gold-soft);letter-spacing:.04em}
   #grid-layer .odds{font-size:1.5vw; letter-spacing:.4em; color:#cfc4b0; text-transform:uppercase}
 
   /* ---------- Nav + controls ---------- */
@@ -166,34 +175,42 @@
 </div>
 
 <script>
-/* ---- Roster: top 24 by builder points, contest cut ----
-   mouse + herz removed; Netskip/Doggo/m18ad/Chloe added;
-   DaReDeViL + cyclops dropped to hold at 24. ---- */
+/* ---- Roster (26 = 24 arena tributes + hidden District 13) ----
+   Slots 1-17 : real June $1000 community participants (joined + posted), by builder points.
+   Slots 18-22 : 5 random community members.
+   Slots 23-24 (District 12) : Doggo (exception) + mouse.
+   Slots 25-26 (District 13, hidden) : Jack (@herz) + Buttercup the cat.
+   Only zicsmartt dropped now (adex_berry restored to fill Jack's old slot). ---- */
 const TRIBUTES = [
-  {name:"Vision",        handle:"vision",       pts:8048, avatar:null},
-  {name:"Ayush",         handle:"col_asy",      pts:4190, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/a2b9e351-5955-46a6-90a5-e36184dfe3de/avatar.jpg?t=1777067593566"},
-  {name:"Mollie",        handle:"mollie",       pts:3986, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/d79a97d2-8d4d-4f98-b5b4-43d55de879da/avatar.jpg?t=1777667325948"},
-  {name:"Joshua",        handle:"josh1",        pts:3913, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/666187f6-f7ea-4329-a947-c6a72f421fa2/avatar.jpeg?t=1772709165239"},
-  {name:"Arqon",         handle:"thebuilderx",  pts:3842, avatar:null},
-  {name:"MindDefinitive",handle:"minddefinitive",pts:3202,avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/76e5a888-de45-4ab5-be3f-3c2bdb11ee4a/avatar.png?t=1779281863053"},
-  {name:"Arinzaay",      handle:"arinzaay",     pts:2512, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/9890c16c-6d99-44a7-b12a-33e506f88e82/avatar.jpg?t=1770936894226"},
-  {name:"The devquee",   handle:"mcqueen",      pts:2165, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/dee35d7e-f7d4-4c34-b572-d7338f6cfa75/avatar.jpg?t=1773271241927"},
-  {name:"Sulaimon",      handle:"minerxx",      pts:2099, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/cea3b363-dd88-44b5-93e1-4bcff36237f3/avatar.jpg?t=1772664001440"},
-  {name:"Lateef",        handle:"latieng",      pts:2086, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/873860da-0335-48bc-8c05-df7712431f27/avatar.jpeg?t=1772748907241"},
-  {name:"Evan Wadsworth",handle:"ktb",          pts:1864, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/c23ff79e-7595-4573-a188-b0f3cf6b025b/avatar.jpg?t=1779555941392"},
-  {name:"Maxim Build",   handle:"maxiagent",    pts:1762, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/1f272ae0-dd8e-415d-8d2f-722ba0ca8c40/avatar.jpg?t=1773340141181"},
-  {name:"Shreya",        handle:"shreey",       pts:1719, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/0edb1a84-b53a-4c13-bf9a-f895c6bd4d5f/avatar.jpg?t=1773581806079"},
-  {name:"Zaineee",       handle:"amira_zainab", pts:1581, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/e2ecfba1-a68f-4443-9bfa-4d994a28b29c/avatar.png?t=1773399940989"},
-  {name:"viktor",        handle:"vicdengineeer",pts:1508, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/75a55055-55b8-484c-a334-06f4cabb1f6b/avatar.jpeg?t=1772747878300"},
-  {name:"Lydia",         handle:"lyde",         pts:1471, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/9551f059-3516-485e-9f59-c08008fff59d/avatar.jpeg?t=1772747459606"},
-  {name:"Maurice",       handle:"mautheng",     pts:1461, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/a7f6b4b1-63c4-4eff-a27c-be71c634b130/avatar.jpg?t=1773341202572"},
-  {name:"Emily",         handle:"emythedev",    pts:1455, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/2e5cd5da-e5c7-4147-866a-8946e557c006/avatar.jpeg?t=1772710475482"},
-  {name:"Zainab",        handle:"zeebee",       pts:1455, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/e14128cd-39f2-4c39-a583-c5328394d078/avatar.jpeg?t=1772711616753"},
-  {name:"PETER STURGE",  handle:"petersturge",  pts:1420, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/5a083963-e605-4e44-8975-b3ba4d8beacf/avatar.png?t=1772718430121"},
-  {name:"netskrip",      handle:"netskrip",     pts:1175, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/3ccd3793-5c81-4605-809d-eac6ef76cf5f/avatar.png?t=1781603015083"},
-  {name:"Doggo",         handle:"doggohartgallery",pts:780,avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/70810a6c-524a-4834-8f9a-8b567b11a13d/avatar.jpg?t=1778508081236"},
-  {name:"Michael",       handle:"m18ad",        pts:752,  avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/78d8a974-e874-4fe0-bd4a-15c79adc3f52/avatar.webp?t=1781496427725"},
-  {name:"Chloe",         handle:"chlo",         pts:513,  avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/a01ee86a-f064-4142-8638-84fe8a2fc523/avatar.jpg?t=1779045353301"},
+  {name:"Vision",             handle:"vision",         pts:8048, avatar:null},
+  {name:"Mollie",             handle:"mollie",         pts:4022, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/d79a97d2-8d4d-4f98-b5b4-43d55de879da/avatar.jpg?t=1777667325948"},
+  {name:"Arqon",              handle:"thebuilderx",    pts:3842, avatar:null},
+  {name:"MindDefinitive",     handle:"minddefinitive", pts:3202, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/76e5a888-de45-4ab5-be3f-3c2bdb11ee4a/avatar.png?t=1779281863053"},
+  {name:"Evan Wadsworth",     handle:"ktb",            pts:1864, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/c23ff79e-7595-4573-a188-b0f3cf6b025b/avatar.jpg?t=1779555941392"},
+  {name:"viktor",             handle:"vicdengineeer",  pts:1508, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/75a55055-55b8-484c-a334-06f4cabb1f6b/avatar.jpeg?t=1772747878300"},
+  {name:"onad",               handle:"sasam",          pts:1272, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/83f54b33-ff77-493c-864a-c3c9f8c07c4b/avatar.jpg?t=1781282339290"},
+  {name:"netskrip",           handle:"netskrip",       pts:1175, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/3ccd3793-5c81-4605-809d-eac6ef76cf5f/avatar.png?t=1781603015083"},
+  {name:"Michael",            handle:"m18ad",          pts:752,  avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/78d8a974-e874-4fe0-bd4a-15c79adc3f52/avatar.webp?t=1781496427725"},
+  {name:"Chloe",              handle:"chlo",           pts:513,  avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/a01ee86a-f064-4142-8638-84fe8a2fc523/avatar.jpg?t=1779045353301"},
+  {name:"Ken",                handle:"kennethics",     pts:502,  avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/98c08c0b-26ba-4370-a431-654e410be504/avatar.jpeg?t=1779600483046"},
+  {name:"John Joseph Bassey", handle:"josephjbassey",  pts:338,  avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/43dc6793-2441-4cb7-a8d1-16a75ff8888e/avatar.png?t=1781665057523"},
+  {name:"Akshdeep Singh",     handle:"akshdeeps_001",  pts:295,  avatar:null},
+  {name:"Shiroku",            handle:"shiroku_official",pts:229, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/a2a1177d-4648-43e7-b5a5-6ea57d3c345e/avatar.jpg?t=1780615614984"},
+  {name:"Utsav",              handle:"ugxships",       pts:123,  avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/2bedd214-3e38-40cb-abb9-dac39c84a174/avatar.jpg?t=1779619622509"},
+  {name:"TheGreenHoodLegend", handle:"cannamuffinman", pts:90,   avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/0e83abc4-fc9b-4e33-8335-99a0e623ae5f/avatar.jpg?t=1780762706442"},
+  {name:"ADEX_BERRY01",       handle:"adex_berry",     pts:34,   avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/88f3940c-3e66-4eeb-88a2-d7c95b67ed33/avatar.jpg?t=1780837231298"},
+  /* --- slots 18-22: random June community members --- */
+  {name:"Adriel",             handle:"vnua",           pts:610,  avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/4a763da6-b030-4e07-8caa-85adcf51e9cc/avatar.jpg?t=1778013640598"},
+  {name:"peperon",            handle:"peperon",        pts:176,  avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/964d7e0a-e037-41c5-9b46-6a08b8b43454/avatar.jpg?t=1781469509724"},
+  {name:"anita",              handle:"anitanft",       pts:76,   avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/185a3359-9f65-4b6a-8dad-45ad26497bad/avatar.png?t=1781469252476"},
+  {name:"CryptoFreak",        handle:"cryptofreak",    pts:0,    avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/7602c395-9fe4-432d-95f9-288cd3b045aa/avatar.jpeg?t=1781404138729"},
+  {name:"Gamingtronium",      handle:"gamingtronium",  pts:0,    avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/e5340ef4-9320-49b0-86d8-bce07278211d/avatar.jpg?t=1781361319928"},
+  /* --- slots 23-24: District 12 --- */
+  {name:"Doggo",              handle:"doggohartgallery",pts:780, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/70810a6c-524a-4834-8f9a-8b567b11a13d/avatar.jpg?t=1778508081236"},
+  {name:"mousedevv",          handle:"mouse",          pts:8020, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/1367d221-a40e-463f-b168-711ada241bf6/avatar.jpg?t=1778592571952"},
+  /* --- slots 25-26: District 13 (hidden) --- */
+  {name:"Jack Herzlich",      handle:"herz",           pts:3987, avatar:"https://hgzkeaicuxvqsiacqnul.supabase.co/storage/v1/object/public/avatars/8e19c3a3-7e32-4323-8992-3b26ade58ae0/avatar.jpg?t=1769568922716"},
+  {name:"Buttercup",          handle:"buttercup",      pts:0,    avatar:"buttercup.png", isCat:true},
 ];
 
 /* ---- Music: drop a file you have the rights to next to this page.
@@ -203,9 +220,25 @@ const MUSIC_VOLUME = 55;   // 0–100
 const MUSIC_FADE = 3;      // seconds to fade in
 
 const initials = n => n.replace(/[^A-Za-z ]/g,'').trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || '?';
-const portrait = t => t.avatar
+/* ---- Per-builder contest stats (June $1000 community): builds posted + likes those builds earned ---- */
+const STATS = {
+  vision:{posts:32,likes:398}, thebuilderx:{posts:11,likes:137}, ktb:{posts:8,likes:70},
+  netskrip:{posts:7,likes:63}, chlo:{posts:6,likes:75}, akshdeeps_001:{posts:5,likes:51},
+  sasam:{posts:4,likes:49}, mollie:{posts:3,likes:40}, mouse:{posts:3,likes:38},
+  m18ad:{posts:3,likes:37}, ugxships:{posts:2,likes:25}, cannamuffinman:{posts:2,likes:23},
+  minddefinitive:{posts:2,likes:19}, kennethics:{posts:1,likes:14}, josephjbassey:{posts:1,likes:12},
+  adex_berry:{posts:1,likes:12}, vicdengineeer:{posts:1,likes:8}, shiroku_official:{posts:1,likes:6},
+};
+const stat = h => STATS[h] || {posts:0, likes:0};
+const profileUrl = h => 'https://prmpted.com/' + h;
+
+const imgHtml = t => t.avatar
   ? `<img src="${t.avatar}" alt="" onerror="this.outerHTML='<div class=&quot;initials&quot;>${initials(t.name)}</div>'">`
   : `<div class="initials">${initials(t.name)}</div>`;
+/* portrait is clickable → opens the builder's Prompted profile (Buttercup has none) */
+const portrait = t => t.isCat
+  ? imgHtml(t)
+  : `<a class="plink" href="${profileUrl(t.handle)}" target="_blank" rel="noopener" title="View @${t.handle} on Prompted">${imgHtml(t)}</a>`;
 
 /* ---- Ember particle field ---- */
 const cv = document.getElementById('embers'), cx = cv.getContext('2d');
@@ -261,13 +294,18 @@ const clearTimers=()=>{timers.forEach(clearTimeout);timers=[];};
 const wait=(fn,ms)=>timers.push(setTimeout(fn,ms));
 
 function buildGrid(){
-  gridEl.innerHTML = TRIBUTES.map(t=>
-    `<div class="cell"><div class="port">${portrait(t)}</div><div class="nm">${t.name}</div></div>`
-  ).join('');
-  [...gridEl.querySelectorAll('.cell')].forEach(c=>{
-    const p=c.querySelector('.port'); c.insertBefore(p.firstElementChild,p); p.remove();
-    const ini=c.querySelector('.initials'); if(ini) ini.classList.replace('initials','ini');
-  });
+  gridEl.innerHTML = TRIBUTES.map(t=>{
+    const s=stat(t.handle);
+    const tip = t.isCat
+      ? `<span class="tipbig">🐾 District 13</span><span class="tipsub">off the books</span>`
+      : `<span class="tipbig">📦 ${s.posts} build${s.posts===1?'':'s'}</span>`
+       +`<span class="tipbig">❤️ ${s.likes} like${s.likes===1?'':'s'}</span>`
+       +`<span class="tipsub">this contest</span>`;
+    const media = t.isCat ? imgHtml(t)
+      : `<a class="cell-link" href="${profileUrl(t.handle)}" target="_blank" rel="noopener">${imgHtml(t)}</a>`;
+    return `<div class="cell">${media}<div class="nm">${t.name}</div><div class="tip">${tip}</div></div>`;
+  }).join('');
+  [...gridEl.querySelectorAll('.cell .initials')].forEach(ini=>ini.classList.replace('initials','ini'));
 }
 buildGrid();
 
@@ -276,16 +314,23 @@ function showCard(i){
   const t=TRIBUTES[i];
   const c=document.createElement('div');
   c.className='card';
+  const district = Math.floor(i/2)+1;
+  const s = stat(t.handle);
+  const rankText = district===13 ? 'District 13 · Classified' : `Tribute ${i+1} of 24`;
+  const contestLine = t.isCat
+    ? `<div class="contest">🐾 Resident arena cat</div>`
+    : `<div class="contest">📦 ${s.posts} build${s.posts===1?'':'s'} · ❤️ ${s.likes} like${s.likes===1?'':'s'} this contest</div>`;
   c.innerHTML=`
     <div class="portrait-col">
-      <div class="district">District ${String(Math.floor(i/2)+1).padStart(2,'0')}</div>
+      <div class="district">District ${String(district).padStart(2,'0')}</div>
       <div class="frame">${portrait(t)}</div>
     </div>
     <div class="meta">
-      <div class="rank">Tribute ${i+1} of 24</div>
+      <div class="rank">${rankText}</div>
       <div class="name">${t.name}</div>
       <div class="handle">@${t.handle}</div>
       <div class="pts"><b>${t.pts.toLocaleString()}</b> Builder Points</div>
+      ${contestLine}
     </div>`;
   c.style.animationDuration = cardMs()+'ms';   // keep fly-in synced to slide time
   cardLayer.innerHTML=''; cardLayer.appendChild(c);
